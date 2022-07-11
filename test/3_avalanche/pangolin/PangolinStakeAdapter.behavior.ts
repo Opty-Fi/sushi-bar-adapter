@@ -5,12 +5,10 @@ import { getAddress } from "ethers/lib/utils";
 import { utils } from "ethers";
 import { PoolItem } from "../types";
 import { getOverrideOptions, setTokenBalanceInStorage } from "../../utils";
-import { default as TOKENS } from "../../../helpers/tokens.json";
 
 chai.use(solidity);
 
 const rewardToken = "0x60781C2586D68229fde47564546784ab3fACA982";
-const vaultUnderlyingTokens = Object.values(TOKENS).map(x => getAddress(x));
 
 export function shouldBehaveLikePangolinStakeAdapter(token: string, pool: PoolItem): void {
   it(`should stake ${token}, claim PNG, harvest PNG and unstake ${token} in ${token} staking pool of Pangolin`, async function () {
@@ -19,8 +17,6 @@ export function shouldBehaveLikePangolinStakeAdapter(token: string, pool: PoolIt
     }
     // underlying token instance
     const underlyingTokenInstance = await hre.ethers.getContractAt("ERC20", pool.tokens[0]);
-    // pangolin reward token decimals
-    const decimals = await underlyingTokenInstance.decimals();
     // pangolin's staking pool instance
     const pangolinStakingPoolInstance = await hre.ethers.getContractAt("IPangolinStake", pool.pool);
     await setTokenBalanceInStorage(underlyingTokenInstance, this.testDeFiAdapter.address, "200");
