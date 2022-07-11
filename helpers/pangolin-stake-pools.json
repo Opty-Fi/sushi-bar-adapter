@@ -1,0 +1,9 @@
+{
+  "png": {
+    "pool": "0x88afdaE1a9F58Da3E68584421937E5F564A0135b",
+    "lpToken": "0x88afdaE1a9F58Da3E68584421937E5F564A0135b",
+    "rewardTokens": ["0x60781C2586D68229fde47564546784ab3fACA982"],
+    "tokens": ["0x60781C2586D68229fde47564546784ab3fACA982"],
+    "deprecated": false
+  }
+}

@@ -30,7 +30,7 @@ const NETWORK = process.env.NETWORK || "hardhat";
 
 // Prevent to load scripts before compilation and typechain
 if (!SKIP_LOAD) {
-  ["1_ethereum"].forEach(folder => {
+  ["3_avalanche"].forEach(folder => {
     const tasksPath = join(__dirname, "tasks", folder);
     fs.readdirSync(tasksPath)
       .filter(pth => pth.includes(".ts"))

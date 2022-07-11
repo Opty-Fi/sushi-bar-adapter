@@ -118,7 +118,7 @@ export const BLOCK_TO_FORK = {
   [ePolygonNetwork.mumbai]: undefined,
   [ePolygonNetwork.matic]: 21435710,
   [eXDaiNetwork.xdai]: undefined,
-  [eAvalancheNetwork.avalanche]: undefined,
+  [eAvalancheNetwork.avalanche]: 17187000,
   [eAvalancheNetwork.fuji]: undefined,
   [eArbitrumNetwork.arbitrum1]: undefined,
   [eArbitrumNetwork.rinkeby_arbitrum1]: undefined,

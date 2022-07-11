@@ -46,12 +46,15 @@ const tokenBalancesSlot = async (token: ERC20) => {
 // Source : https://blog.euler.finance/brute-force-storage-layout-discovery-in-erc20-contracts-with-hardhat-7ff9342143ed
 export async function setTokenBalanceInStorage(token: ERC20, account: string, amount: string) {
   const balancesSlot = await tokenBalancesSlot(token);
+
   if (balancesSlot.isVyper) {
+    let slot = ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(["uint256", "address"], [balancesSlot.index, account]),
+    );
+    while (slot.startsWith("0x0")) slot = "0x" + slot.slice(3);
     return setStorageAt(
       token.address,
-      ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(["uint256", "address"], [balancesSlot.index, account]),
-      ),
+      slot,
       "0x" +
         ethers.utils
           .parseUnits(amount, await token.decimals())
@@ -60,11 +63,13 @@ export async function setTokenBalanceInStorage(token: ERC20, account: string, am
           .padStart(64, "0"),
     );
   } else {
+    let slot = ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(["address", "uint256"], [account, balancesSlot.index]),
+    );
+    while (slot.startsWith("0x0")) slot = "0x" + slot.slice(3);
     return setStorageAt(
       token.address,
-      ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(["address", "uint256"], [account, balancesSlot.index]),
-      ),
+      slot,
       "0x" +
         ethers.utils
           .parseUnits(amount, await token.decimals())
