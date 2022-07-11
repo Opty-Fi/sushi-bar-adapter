@@ -28,12 +28,6 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     /** @notice max deposit value datatypes */
     MaxExposure public maxDepositProtocolMode;
 
-    /** @notice Pangolin PNG contract address */
-    address public constant PNG = address(0x60781C2586D68229fde47564546784ab3fACA982);
-
-    /** @notice PNG staking contract address */
-    address public constant PNG_BAR = address(0x88afdaE1a9F58Da3E68584421937E5F564A0135b);
-
     /** @notice max deposit's protocol value in percentage */
     uint256 public maxDepositProtocolPct; // basis points
 
@@ -167,9 +161,14 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     /**
      * @inheritdoc IAdapter
      */
-    function getUnderlyingTokens(address, address) external pure override returns (address[] memory _underlyingTokens) {
+    function getUnderlyingTokens(address _liquidityPool, address)
+        external
+        view
+        override
+        returns (address[] memory _underlyingTokens)
+    {
         _underlyingTokens = new address[](1);
-        _underlyingTokens[0] = PNG;
+        _underlyingTokens[0] = IPangolinStake(_liquidityPool).stakingToken();
     }
 
     /**
@@ -274,14 +273,21 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     /**
      * @inheritdoc IAdapter
      */
+    function getRewardToken(address _liquidityPool) public view override returns (address) {
+        return IPangolinStake(_liquidityPool).rewardsToken();
+    }
+
+    /**
+     * @inheritdoc IAdapter
+     */
     function getWithdrawSomeCodes(
         address payable, // solhint-disable-line no-unused-vars
         address,
         address _stakingPool,
-        uint256
+        uint256 _amount
     ) public pure override returns (bytes[] memory _codes) {
         _codes = new bytes[](1);
-        _codes[0] = abi.encode(_stakingPool, abi.encodeWithSignature("exit()"));
+        _codes[0] = abi.encode(_stakingPool, abi.encodeWithSignature("withdraw(uint256)", _amount));
     }
 
     /**
@@ -298,15 +304,8 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     /**
      * @inheritdoc IAdapter
      */
-    function getLiquidityPoolToken(address _underlyingToken, address) public pure override returns (address) {
-        return _underlyingToken;
-    }
-
-    /**
-     * @inheritdoc IAdapter
-     */
-    function getRewardToken(address) public pure override returns (address) {
-        return PNG;
+    function getLiquidityPoolToken(address, address _liquidityPool) public pure override returns (address) {
+        return _liquidityPool;
     }
 
     function _getDepositAmount(
