@@ -3,9 +3,6 @@
 pragma solidity =0.8.11;
 pragma experimental ABIEncoderV2;
 
-// libraries
-import { Address } from "@openzeppelin/contracts-0.8.x/utils/Address.sol";
-
 // helper contracts
 import { AdapterModifiersBase } from "../../utils/AdapterModifiersBase.sol";
 
@@ -23,8 +20,6 @@ import { IPangolinStake } from "./interfaces/IPangolinStake.sol";
  */
 
 contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestReward, AdapterModifiersBase {
-    using Address for address;
-
     /** @notice max deposit value datatypes */
     MaxExposure public maxDepositProtocolMode;
 
