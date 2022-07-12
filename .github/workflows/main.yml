@@ -17,7 +17,7 @@ jobs:
         node-version: [12.x.x]
     
     env:
-      AVALANCHE_RPC_URL: ${{ secrets.AVALANCHE_RPC_URL}}
+      MAIN_RPC_URL: ${{ secrets.MAIN_RPC_URL}}
       MNEMONIC: ${{ secrets.MNEMONIC}}
 
     steps:
@@ -43,7 +43,7 @@ jobs:
         node-version: [12.x.x]
     
     env:
-      AVALANCHE_RPC_URL: ${{ secrets.AVALANCHE_RPC_URL}}
+      MAIN_RPC_URL: ${{ secrets.MAIN_RPC_URL}}
       MNEMONIC: ${{ secrets.MNEMONIC}}
 
     steps:
@@ -62,14 +62,14 @@ jobs:
       - name: Compile
         run: |
           yarn compile
-  avalanche-test:
+  ethereum-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [12.x.x]
     
     env:
-      AVALANCHE_RPC_URL: ${{ secrets.AVALANCHE_RPC_URL}}
+      MAIN_RPC_URL: ${{ secrets.MAIN_RPC_URL}}
       MNEMONIC: ${{ secrets.MNEMONIC}}
 
     steps:
@@ -88,4 +88,4 @@ jobs:
           yarn typechain
       - name: Test
         run: |
-          yarn test:avalanche:fork
+          yarn test:ethereum:fork
