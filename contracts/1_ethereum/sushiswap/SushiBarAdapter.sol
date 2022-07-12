@@ -9,17 +9,16 @@ import { AdapterModifiersBase } from "../../utils/AdapterModifiersBase.sol";
 // interfaces
 import { IERC20 } from "@openzeppelin/contracts-0.8.x/token/ERC20/IERC20.sol";
 import { IAdapter } from "@optyfi/defi-legos/interfaces/defiAdapters/contracts/IAdapter.sol";
-import { IAdapterHarvestReward } from "@optyfi/defi-legos/interfaces/defiAdapters/contracts/IAdapterHarvestReward.sol";
 import "@optyfi/defi-legos/interfaces/defiAdapters/contracts/IAdapterInvestLimit.sol";
-import { IPangolinStake } from "./interfaces/IPangolinStake.sol";
+import { ISushiBar } from "./interfaces/ISushiBar.sol";
 
 /**
- * @title Adapter for TraderJoe protocol
+ * @title Adapter for Sushiswap protocol
  * @author Opty.fi
- * @dev Abstraction layer to TraderJoe's MasterChef contract
+ * @dev Abstraction layer to Sushiswap's SushiBar contract
  */
 
-contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestReward, AdapterModifiersBase {
+contract SushiBarAdapter is IAdapter, IAdapterInvestLimit, AdapterModifiersBase {
     /** @notice max deposit value datatypes */
     MaxExposure public maxDepositProtocolMode;
 
@@ -53,12 +52,12 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
      * @inheritdoc IAdapterInvestLimit
      */
     function setMaxDepositAmount(
-        address _stakingPool,
+        address _sushiBar,
         address _underlyingToken,
         uint256 _maxDepositAmount
     ) external override onlyRiskOperator {
-        maxDepositAmount[_stakingPool][_underlyingToken] = _maxDepositAmount;
-        emit LogMaxDepositAmount(maxDepositAmount[_stakingPool][_underlyingToken], msg.sender);
+        maxDepositAmount[_sushiBar][_underlyingToken] = _maxDepositAmount;
+        emit LogMaxDepositAmount(maxDepositAmount[_sushiBar][_underlyingToken], msg.sender);
     }
 
     /**
@@ -83,10 +82,10 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     function getDepositAllCodes(
         address payable _vault,
         address _underlyingToken,
-        address _stakingPool
+        address _sushiBar
     ) external view override returns (bytes[] memory) {
         uint256 _amount = IERC20(_underlyingToken).balanceOf(_vault);
-        return getDepositSomeCodes(_vault, _underlyingToken, _stakingPool, _amount);
+        return getDepositSomeCodes(_vault, _underlyingToken, _sushiBar, _amount);
     }
 
     /**
@@ -95,37 +94,10 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     function getWithdrawAllCodes(
         address payable _vault,
         address _underlyingToken,
-        address _stakingPool
+        address _sushiBar
     ) external view override returns (bytes[] memory) {
-        uint256 _redeemAmount = getLiquidityPoolTokenBalance(_vault, _underlyingToken, _stakingPool);
-        return getWithdrawSomeCodes(_vault, _underlyingToken, _stakingPool, _redeemAmount);
-    }
-
-    /**
-     * @inheritdoc IAdapterHarvestReward
-     */
-    function getUnclaimedRewardTokenAmount(
-        address payable _vault,
-        address _stakingPool,
-        address
-    ) external view override returns (uint256) {
-        return IPangolinStake(_stakingPool).earned(_vault);
-    }
-
-    /**
-     * @inheritdoc IAdapterHarvestReward
-     */
-    function getClaimRewardTokenCode(address payable _vault, address _stakingPool)
-        external
-        view
-        override
-        returns (bytes[] memory _codes)
-    {
-        uint256 unclaimedRewards = IPangolinStake(_stakingPool).earned(_vault);
-        if (unclaimedRewards > uint256(0)) {
-            _codes = new bytes[](1);
-            _codes[0] = abi.encode(_stakingPool, abi.encodeWithSignature("getReward()"));
-        }
+        uint256 _redeemAmount = getLiquidityPoolTokenBalance(_vault, _underlyingToken, _sushiBar);
+        return getWithdrawSomeCodes(_vault, _underlyingToken, _sushiBar, _redeemAmount);
     }
 
     /**
@@ -134,10 +106,12 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     function calculateRedeemableLPTokenAmount(
         address payable _vault,
         address _underlyingToken,
-        address _stakingPool,
-        uint256
+        address _sushiBar,
+        uint256 _redeemAmount
     ) external view override returns (uint256) {
-        return getAllAmountInToken(_vault, _underlyingToken, _stakingPool);
+        uint256 _liquidityPoolTokenBalance = getLiquidityPoolTokenBalance(_vault, _underlyingToken, _sushiBar);
+        uint256 _balanceInToken = getAllAmountInToken(_vault, _underlyingToken, _sushiBar);
+        return (_liquidityPoolTokenBalance * _redeemAmount) / _balanceInToken;
     }
 
     /**
@@ -146,35 +120,35 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     function isRedeemableAmountSufficient(
         address payable _vault,
         address _underlyingToken,
-        address _stakingPool,
+        address _sushiBar,
         uint256 _redeemAmount
     ) external view override returns (bool) {
-        uint256 _balanceInToken = getAllAmountInToken(_vault, _underlyingToken, _stakingPool);
+        uint256 _balanceInToken = getAllAmountInToken(_vault, _underlyingToken, _sushiBar);
         return _balanceInToken >= _redeemAmount;
     }
 
     /**
      * @inheritdoc IAdapter
      */
-    function getUnderlyingTokens(address _liquidityPool, address)
+    function getUnderlyingTokens(address _sushiBar, address)
         external
         view
         override
         returns (address[] memory _underlyingTokens)
     {
         _underlyingTokens = new address[](1);
-        _underlyingTokens[0] = IPangolinStake(_liquidityPool).stakingToken();
+        _underlyingTokens[0] = ISushiBar(_sushiBar).sushi();
     }
 
     /**
      * @inheritdoc IAdapter
      */
     function calculateAmountInLPToken(
-        address,
-        address,
+        address _underlyingToken,
+        address _sushiBar,
         uint256 _depositAmount
-    ) external pure override returns (uint256) {
-        return _depositAmount;
+    ) external view override returns (uint256) {
+        return (_depositAmount * IERC20(_sushiBar).totalSupply()) / IERC20(_underlyingToken).balanceOf(_sushiBar);
     }
 
     /**
@@ -184,63 +158,35 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
         return false;
     }
 
-    // solhint-disable no-empty-blocks
-
-    /**
-     * @inheritdoc IAdapterHarvestReward
-     */
-    function getHarvestAllCodes(
-        address payable,
-        address,
-        address
-    ) external pure returns (bytes[] memory) {}
-
-    /**
-     * @inheritdoc IAdapterHarvestReward
-     */
-    function getHarvestSomeCodes(
-        address payable,
-        address,
-        address,
-        uint256
-    ) external pure override returns (bytes[] memory) {}
-
-    /**
-     * @inheritdoc IAdapterHarvestReward
-     */
-    function getAddLiquidityCodes(address payable, address) external pure override returns (bytes[] memory) {}
-
-    // solhint-enable no-empty-blocks
-
     /**
      * @inheritdoc IAdapter
      */
     function getDepositSomeCodes(
         address payable, // solhint-disable-line no-unused-vars
         address _underlyingToken,
-        address _stakingPool,
+        address _sushiBar,
         uint256 _amount
     ) public view override returns (bytes[] memory _codes) {
-        uint256 _depositAmount = _getDepositAmount(_stakingPool, _underlyingToken, _amount);
+        uint256 _depositAmount = _getDepositAmount(_sushiBar, _underlyingToken, _amount);
         if (_depositAmount > 0) {
             _codes = new bytes[](3);
             _codes[0] = abi.encode(
                 _underlyingToken,
-                abi.encodeWithSignature("approve(address,uint256)", _stakingPool, uint256(0))
+                abi.encodeWithSignature("approve(address,uint256)", _sushiBar, uint256(0))
             );
             _codes[1] = abi.encode(
                 _underlyingToken,
-                abi.encodeWithSignature("approve(address,uint256)", _stakingPool, _depositAmount)
+                abi.encodeWithSignature("approve(address,uint256)", _sushiBar, _depositAmount)
             );
-            _codes[2] = abi.encode(_stakingPool, abi.encodeWithSignature("stake(uint256)", _depositAmount));
+            _codes[2] = abi.encode(_sushiBar, abi.encodeWithSignature("enter(uint256)", _depositAmount));
         }
     }
 
     /**
      * @inheritdoc IAdapter
      */
-    function getPoolValue(address _stakingPool, address) public view override returns (uint256) {
-        return IERC20(_stakingPool).totalSupply();
+    function getPoolValue(address _sushiBar, address _underlyingToken) public view override returns (uint256) {
+        return IERC20(_underlyingToken).balanceOf(_sushiBar);
     }
 
     /**
@@ -248,10 +194,15 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
      */
     function getAllAmountInToken(
         address payable _vault,
-        address,
-        address _stakingPool
-    ) public view override returns (uint256 _balance) {
-        _balance = IERC20(_stakingPool).balanceOf(_vault);
+        address _underlyingToken,
+        address _sushiBar
+    ) public view override returns (uint256) {
+        return
+            getSomeAmountInToken(
+                _underlyingToken,
+                _sushiBar,
+                getLiquidityPoolTokenBalance(_vault, _underlyingToken, _sushiBar)
+            );
     }
 
     /**
@@ -260,16 +211,27 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     function getLiquidityPoolTokenBalance(
         address payable _vault,
         address,
-        address _stakingPool
+        address _sushiBar
     ) public view override returns (uint256) {
-        return IERC20(_stakingPool).balanceOf(_vault);
+        return IERC20(_sushiBar).balanceOf(_vault);
     }
 
     /**
      * @inheritdoc IAdapter
      */
-    function getRewardToken(address _liquidityPool) public view override returns (address) {
-        return IPangolinStake(_liquidityPool).rewardsToken();
+    function getSomeAmountInToken(
+        address _underlyingToken,
+        address _sushiBar,
+        uint256 _amount
+    ) public view override returns (uint256) {
+        return (_amount * IERC20(_underlyingToken).balanceOf(_sushiBar)) / ISushiBar(_sushiBar).totalSupply();
+    }
+
+    /**
+     * @inheritdoc IAdapter
+     */
+    function getRewardToken(address) public pure override returns (address) {
+        return address(0);
     }
 
     /**
@@ -278,44 +240,33 @@ contract PangolinStakeAdapter is IAdapter, IAdapterInvestLimit, IAdapterHarvestR
     function getWithdrawSomeCodes(
         address payable, // solhint-disable-line no-unused-vars
         address,
-        address _stakingPool,
+        address _sushiBar,
         uint256 _amount
     ) public pure override returns (bytes[] memory _codes) {
         _codes = new bytes[](1);
-        _codes[0] = abi.encode(_stakingPool, abi.encodeWithSignature("withdraw(uint256)", _amount));
+        _codes[0] = abi.encode(_sushiBar, abi.encodeWithSignature("leave(uint256)", _amount));
     }
 
     /**
      * @inheritdoc IAdapter
      */
-    function getSomeAmountInToken(
-        address,
-        address,
-        uint256 _amount
-    ) public pure override returns (uint256) {
-        return _amount;
-    }
-
-    /**
-     * @inheritdoc IAdapter
-     */
-    function getLiquidityPoolToken(address, address _liquidityPool) public pure override returns (address) {
-        return _liquidityPool;
+    function getLiquidityPoolToken(address, address _sushiBar) public pure override returns (address) {
+        return _sushiBar;
     }
 
     function _getDepositAmount(
-        address _stakingPool,
+        address _sushiBar,
         address _underlyingToken,
         uint256 _amount
     ) internal view returns (uint256) {
         uint256 _limit = maxDepositProtocolMode == MaxExposure.Pct
-            ? _getMaxDepositAmountByPct(_stakingPool, _underlyingToken)
-            : maxDepositAmount[_stakingPool][_underlyingToken];
+            ? _getMaxDepositAmountByPct(_sushiBar, _underlyingToken)
+            : maxDepositAmount[_sushiBar][_underlyingToken];
         return _amount > _limit ? _limit : _amount;
     }
 
-    function _getMaxDepositAmountByPct(address _stakingPool, address _underlyingToken) internal view returns (uint256) {
-        uint256 _poolValue = getPoolValue(_stakingPool, _underlyingToken);
+    function _getMaxDepositAmountByPct(address _sushiBar, address _underlyingToken) internal view returns (uint256) {
+        uint256 _poolValue = getPoolValue(_sushiBar, _underlyingToken);
         uint256 _poolPct = maxDepositPoolPct[_underlyingToken];
         uint256 _limit = _poolPct == 0
             ? (_poolValue * maxDepositProtocolPct) / uint256(10000)
