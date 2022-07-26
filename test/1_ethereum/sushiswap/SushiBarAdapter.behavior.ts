@@ -2,7 +2,7 @@ import hre, { ethers } from "hardhat";
 import chai, { expect } from "chai";
 import { solidity } from "ethereum-waffle";
 import { getAddress } from "ethers/lib/utils";
-import { PoolItem } from "../types";
+import { PoolItem } from "../../types";
 import { getOverrideOptions, setTokenBalanceInStorage } from "../../utils";
 
 chai.use(solidity);
